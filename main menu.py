@@ -1,87 +1,87 @@
-import math
-import sys
-import pygame
-import os
-import json
+    import math
+    import sys
+    import pygame
+    import os
+    import json
 
-# Initialize Pygame
-pygame.init()
-pygame.mixer.init()
+    # Initialize Pygame
+    pygame.init()
+    pygame.mixer.init()
 
-# 16:9 Widescreen Laptop Resolution
-WIDTH, HEIGHT = 1280, 720
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Escape the Upside Down - Main Menu")
-clock = pygame.time.Clock()
+    # 16:9 Widescreen Laptop Resolution
+    WIDTH, HEIGHT = 1280, 720
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    pygame.display.set_caption("Escape the Upside Down - Main Menu")
+    clock = pygame.time.Clock()
 
-# --- Asset Loading ---
-IMAGE_FILENAME = "assets/trees.jpeg"
+    # --- Asset Loading ---
+    IMAGE_FILENAME = "assets/trees.jpeg"
 
-try:
+    try:
     bg_original = pygame.image.load(IMAGE_FILENAME).convert()
-except FileNotFoundError:
+    except FileNotFoundError:
     print(f"Error: Could not find '{IMAGE_FILENAME}'.")
     pygame.quit()
     sys.exit()
 
-# Menu Options (Resume Game removed, Customization added)
-options = ["START GAME", "CUSTOMIZATION", "SETTINGS", "EXIT"]
-selected_option = 0
+    # Menu Options (Resume Game removed, Customization added)
+    options = ["START GAME", "CUSTOMIZATION", "SETTINGS", "EXIT"]
+    selected_option = 0
 
-# Fonts
-font_menu = pygame.font.Font(None, 36)
-font_title = pygame.font.Font(None, 72)
-font_small = pygame.font.Font(None, 24)
+    # Fonts
+    font_menu = pygame.font.Font(None, 36)
+    font_title = pygame.font.Font(None, 72)
+    font_small = pygame.font.Font(None, 24)
 
-# --- JSON Data Management (Inside existing 'UI' folder) ---
-UI_FOLDER = "UI"
-DATA_FILE = os.path.join(UI_FOLDER, "player_data.json")
+    # --- JSON Data Management (Inside existing 'UI' folder) ---
+    UI_FOLDER = "UI"
+    DATA_FILE = os.path.join(UI_FOLDER, "player_data.json")
 
 
-def load_data():
+    def load_data():
     if os.path.exists(DATA_FILE):
-        try:
-            with open(DATA_FILE, "r") as f:
-                return json.load(f)
-        except:
-            pass
+    try:
+        with open(DATA_FILE, "r") as f:
+            return json.load(f)
+    except:
+        pass
     return {
-        "player_name": "Player",
-        "selected_character": "Will",
-        "sound": True,
-        "music": True,
-        "dark_mode": True
+    "player_name": "Player",
+    "selected_character": "Will",
+    "sound": True,
+    "music": True,
+    "dark_mode": True
     }
 
 
-def save_data(data):
+    def save_data(data):
     os.makedirs(UI_FOLDER, exist_ok=True)
     with open(DATA_FILE, "w") as f:
-        json.dump(data, f, indent=4)
+    json.dump(data, f, indent=4)
 
 
-player_data = load_data()
+    player_data = load_data()
 
-# --- Infinite Smooth Zoom Variables ---
-zoom_progress = 0.0
-speed = 0.0015
+    # --- Infinite Smooth Zoom Variables ---
+    zoom_progress = 0.0
+    speed = 0.0015
 
 
-def draw_styled_button(surface, text, center_x, center_y, width, height, is_selected):
+    def draw_styled_button(surface, text, center_x, center_y, width, height, is_selected):
     """Draws an arcade-style graphic box with glowing borders for menu items."""
     rect = pygame.Rect(0, 0, width, height)
     rect.center = (center_x, center_y)
 
     if is_selected:
-        bg_color = (180, 10, 10, 210)
-        border_color = (255, 60, 60)
-        text_color = (255, 255, 255)
-        border_width = 3
+    bg_color = (180, 10, 10, 210)
+    border_color = (255, 60, 60)
+    text_color = (255, 255, 255)
+    border_width = 3
     else:
-        bg_color = (15, 15, 25, 170)
-        border_color = (80, 80, 100)
-        text_color = (180, 180, 180)
-        border_width = 2
+    bg_color = (15, 15, 25, 170)
+    border_color = (80, 80, 100)
+    text_color = (180, 180, 180)
+    border_width = 2
 
     box_surface = pygame.Surface((width, height), pygame.SRCALPHA)
     box_surface.fill(bg_color)
@@ -89,8 +89,8 @@ def draw_styled_button(surface, text, center_x, center_y, width, height, is_sele
     pygame.draw.rect(surface, border_color, rect, border_width, border_radius=6)
 
     if is_selected:
-        pygame.draw.circle(surface, border_color, (rect.left - 15, rect.centery), 6)
-        pygame.draw.circle(surface, border_color, (rect.right + 15, rect.centery), 6)
+    pygame.draw.circle(surface, border_color, (rect.left - 15, rect.centery), 6)
+    pygame.draw.circle(surface, border_color, (rect.right + 15, rect.centery), 6)
 
     text_surface = font_menu.render(text, True, text_color)
     text_rect = text_surface.get_rect(center=rect.center)
@@ -98,181 +98,181 @@ def draw_styled_button(surface, text, center_x, center_y, width, height, is_sele
     return rect
 
 
-# --- Seamless Countdown & Game Launch (Same Window) ---
-def start_countdown_and_game():
+    # --- Seamless Countdown & Game Launch (Same Window) ---
+    def start_countdown_and_game():
     countdown_steps = ["3", "2", "1", "START!"]
     global zoom_progress
 
     for step in countdown_steps:
-        start_ticks = pygame.time.get_ticks()
-        while pygame.time.get_ticks() - start_ticks < 1000:
-            zoom_progress += speed
-            if zoom_progress >= 1.0:
-                zoom_progress = 0.0
+    start_ticks = pygame.time.get_ticks()
+    while pygame.time.get_ticks() - start_ticks < 1000:
+        zoom_progress += speed
+        if zoom_progress >= 1.0:
+            zoom_progress = 0.0
 
-            screen.fill((0, 0, 0))
-            scale1 = 1.0 + zoom_progress
-            w1, h1 = int(WIDTH * scale1), int(HEIGHT * scale1)
-            surf1 = pygame.transform.smoothscale(bg_original, (w1, h1))
-            alpha1 = int((1.0 - zoom_progress) * 255)
-            surf1.set_alpha(alpha1)
-            screen.blit(surf1, ((WIDTH - w1) // 2, (HEIGHT - h1) // 2))
+        screen.fill((0, 0, 0))
+        scale1 = 1.0 + zoom_progress
+        w1, h1 = int(WIDTH * scale1), int(HEIGHT * scale1)
+        surf1 = pygame.transform.smoothscale(bg_original, (w1, h1))
+        alpha1 = int((1.0 - zoom_progress) * 255)
+        surf1.set_alpha(alpha1)
+        screen.blit(surf1, ((WIDTH - w1) // 2, (HEIGHT - h1) // 2))
 
-            vignette = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-            vignette.fill((0, 0, 0, 120))
-            screen.blit(vignette, (0, 0))
+        vignette = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        vignette.fill((0, 0, 0, 120))
+        screen.blit(vignette, (0, 0))
 
-            # Big Countdown Text
-            count_surf = font_title.render(step, True, (255, 50, 50))
-            count_rect = count_surf.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 20))
-            screen.blit(count_surf, count_rect)
+        # Big Countdown Text
+        count_surf = font_title.render(step, True, (255, 50, 50))
+        count_rect = count_surf.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 20))
+        screen.blit(count_surf, count_rect)
 
-            info_surf = font_menu.render(
-                f"Playing as {player_data['selected_character']} ({player_data['player_name']})", True, (240, 240, 240))
-            screen.blit(info_surf, (WIDTH // 2 - info_surf.get_width() // 2, HEIGHT // 2 + 50))
+        info_surf = font_menu.render(
+            f"Playing as {player_data['selected_character']} ({player_data['player_name']})", True, (240, 240, 240))
+        screen.blit(info_surf, (WIDTH // 2 - info_surf.get_width() // 2, HEIGHT // 2 + 50))
 
-            pygame.display.flip()
-            clock.tick(60)
+        pygame.display.flip()
+        clock.tick(60)
 
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
 
     # --- SEAMLESS HANDOFF TO MAIN GAME (Same Window) ---
     try:
-        import main
-        if hasattr(main, 'run_game'):
-            # Yeh wahi same 'screen' aur 'player_data' pass karega taake window close na ho!
-            main.run_game(screen, player_data)
-        else:
-            print("Error: main.py mein 'run_game(screen, player_data)' function define hona chahiye.")
+    import main
+    if hasattr(main, 'run_game'):
+        # Yeh wahi same 'screen' aur 'player_data' pass karega taake window close na ho!
+        main.run_game(screen, player_data)
+    else:
+        print("Error: main.py mein 'run_game(screen, player_data)' function define hona chahiye.")
     except ImportError:
-        print("Error: main.py file nahi mili!")
+    print("Error: main.py file nahi mili!")
 
 
-# --- Customization Screen ---
-def customization_screen():
+    # --- Customization Screen ---
+    def customization_screen():
     global player_data
     characters = ["Will", "Eleven", "Dustin", "Lucas", "Mike", "Max", "Steve"]
     char_index = characters.index(player_data["selected_character"]) if player_data[
-                                                                            "selected_character"] in characters else 0
+                                                                        "selected_character"] in characters else 0
     input_active = False
     name_text = player_data["player_name"]
 
     while True:
-        screen.fill((15, 15, 25))
+    screen.fill((15, 15, 25))
 
-        title_surf = font_title.render("CHARACTER CUSTOMIZATION", True, (230, 20, 20))
-        screen.blit(title_surf, (WIDTH // 2 - title_surf.get_width() // 2, 80))
+    title_surf = font_title.render("CHARACTER CUSTOMIZATION", True, (230, 20, 20))
+    screen.blit(title_surf, (WIDTH // 2 - title_surf.get_width() // 2, 80))
 
-        # Name Input Box
-        name_lbl = font_menu.render(f"Player Name: {name_text}", True, (240, 240, 240))
-        screen.blit(name_lbl, (WIDTH // 2 - 200, 220))
+    # Name Input Box
+    name_lbl = font_menu.render(f"Player Name: {name_text}", True, (240, 240, 240))
+    screen.blit(name_lbl, (WIDTH // 2 - 200, 220))
 
-        input_box = pygame.Rect(WIDTH // 2 - 200, 260, 400, 50)
-        pygame.draw.rect(screen, (50, 50, 70) if not input_active else (80, 80, 110), input_box, border_radius=6)
-        pygame.draw.rect(screen, (230, 20, 20) if input_active else (150, 150, 150), input_box, 2, border_radius=6)
+    input_box = pygame.Rect(WIDTH // 2 - 200, 260, 400, 50)
+    pygame.draw.rect(screen, (50, 50, 70) if not input_active else (80, 80, 110), input_box, border_radius=6)
+    pygame.draw.rect(screen, (230, 20, 20) if input_active else (150, 150, 150), input_box, 2, border_radius=6)
 
-        txt_surf = font_menu.render(name_text + ("|" if input_active else ""), True, (255, 255, 255))
-        screen.blit(txt_surf, (input_box.x + 15, input_box.y + 12))
+    txt_surf = font_menu.render(name_text + ("|" if input_active else ""), True, (255, 255, 255))
+    screen.blit(txt_surf, (input_box.x + 15, input_box.y + 12))
 
-        # Character Selection
-        char_lbl = font_menu.render(f"Selected Character: {characters[char_index]} (Use LEFT/RIGHT arrows)", True,
-                                    (240, 240, 240))
-        screen.blit(char_lbl, (WIDTH // 2 - 300, 370))
+    # Character Selection
+    char_lbl = font_menu.render(f"Selected Character: {characters[char_index]} (Use LEFT/RIGHT arrows)", True,
+                                (240, 240, 240))
+    screen.blit(char_lbl, (WIDTH // 2 - 300, 370))
 
-        back_rect = pygame.Rect(WIDTH // 2 - 100, 500, 200, 50)
-        pygame.draw.rect(screen, (40, 40, 60), back_rect, border_radius=6)
-        pygame.draw.rect(screen, (230, 20, 20), back_rect, 2, border_radius=6)
-        back_txt = font_menu.render("SAVE & BACK", True, (255, 255, 255))
-        screen.blit(back_txt, back_txt.get_rect(center=back_rect.center))
+    back_rect = pygame.Rect(WIDTH // 2 - 100, 500, 200, 50)
+    pygame.draw.rect(screen, (40, 40, 60), back_rect, border_radius=6)
+    pygame.draw.rect(screen, (230, 20, 20), back_rect, 2, border_radius=6)
+    back_txt = font_menu.render("SAVE & BACK", True, (255, 255, 255))
+    screen.blit(back_txt, back_txt.get_rect(center=back_rect.center))
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if input_box.collidepoint(event.pos):
-                    input_active = True
-                else:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if input_box.collidepoint(event.pos):
+                input_active = True
+            else:
+                input_active = False
+            if back_rect.collidepoint(event.pos):
+                player_data["player_name"] = name_text
+                player_data["selected_character"] = characters[char_index]
+                save_data(player_data)
+                return
+        if event.type == pygame.KEYDOWN:
+            if input_active:
+                if event.key == pygame.K_BACKSPACE:
+                    name_text = name_text[:-1]
+                elif event.key == pygame.K_RETURN:
                     input_active = False
-                if back_rect.collidepoint(event.pos):
+                else:
+                    if len(name_text) < 15:
+                        name_text += event.unicode
+            else:
+                if event.key == pygame.K_LEFT:
+                    char_index = (char_index - 1) % len(characters)
+                elif event.key == pygame.K_RIGHT:
+                    char_index = (char_index + 1) % len(characters)
+                elif event.key == pygame.K_RETURN:
                     player_data["player_name"] = name_text
                     player_data["selected_character"] = characters[char_index]
                     save_data(player_data)
                     return
-            if event.type == pygame.KEYDOWN:
-                if input_active:
-                    if event.key == pygame.K_BACKSPACE:
-                        name_text = name_text[:-1]
-                    elif event.key == pygame.K_RETURN:
-                        input_active = False
-                    else:
-                        if len(name_text) < 15:
-                            name_text += event.unicode
-                else:
-                    if event.key == pygame.K_LEFT:
-                        char_index = (char_index - 1) % len(characters)
-                    elif event.key == pygame.K_RIGHT:
-                        char_index = (char_index + 1) % len(characters)
-                    elif event.key == pygame.K_RETURN:
-                        player_data["player_name"] = name_text
-                        player_data["selected_character"] = characters[char_index]
-                        save_data(player_data)
-                        return
 
-        pygame.display.flip()
-        clock.tick(60)
+    pygame.display.flip()
+    clock.tick(60)
 
 
-# --- Settings Screen ---
-def settings_screen():
+    # --- Settings Screen ---
+    def settings_screen():
     global player_data
     while True:
-        screen.fill((15, 15, 25))
-        title_surf = font_title.render("SETTINGS", True, (230, 20, 20))
-        screen.blit(title_surf, (WIDTH // 2 - title_surf.get_width() // 2, 80))
+    screen.fill((15, 15, 25))
+    title_surf = font_title.render("SETTINGS", True, (230, 20, 20))
+    screen.blit(title_surf, (WIDTH // 2 - title_surf.get_width() // 2, 80))
 
-        sound_txt = font_menu.render(f"Sound Effects: {'ON' if player_data['sound'] else 'OFF'}", True, (240, 240, 240))
-        music_txt = font_menu.render(f"Background Music: {'ON' if player_data['music'] else 'OFF'}", True,
-                                     (240, 240, 240))
+    sound_txt = font_menu.render(f"Sound Effects: {'ON' if player_data['sound'] else 'OFF'}", True, (240, 240, 240))
+    music_txt = font_menu.render(f"Background Music: {'ON' if player_data['music'] else 'OFF'}", True,
+                                 (240, 240, 240))
 
-        screen.blit(sound_txt, (WIDTH // 2 - 150, 250))
-        screen.blit(music_txt, (WIDTH // 2 - 150, 320))
+    screen.blit(sound_txt, (WIDTH // 2 - 150, 250))
+    screen.blit(music_txt, (WIDTH // 2 - 150, 320))
 
-        back_rect = pygame.Rect(WIDTH // 2 - 100, 480, 200, 50)
-        pygame.draw.rect(screen, (40, 40, 60), back_rect, border_radius=6)
-        pygame.draw.rect(screen, (230, 20, 20), back_rect, 2, border_radius=6)
-        back_txt = font_menu.render("BACK", True, (255, 255, 255))
-        screen.blit(back_txt, back_txt.get_rect(center=back_rect.center))
+    back_rect = pygame.Rect(WIDTH // 2 - 100, 480, 200, 50)
+    pygame.draw.rect(screen, (40, 40, 60), back_rect, border_radius=6)
+    pygame.draw.rect(screen, (230, 20, 20), back_rect, 2, border_radius=6)
+    back_txt = font_menu.render("BACK", True, (255, 255, 255))
+    screen.blit(back_txt, back_txt.get_rect(center=back_rect.center))
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if pygame.Rect(WIDTH // 2 - 150, 240, 300, 40).collidepoint(event.pos):
-                    player_data["sound"] = not player_data["sound"]
-                elif pygame.Rect(WIDTH // 2 - 150, 310, 300, 40).collidepoint(event.pos):
-                    player_data["music"] = not player_data["music"]
-                elif back_rect.collidepoint(event.pos):
-                    save_data(player_data)
-                    return
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if pygame.Rect(WIDTH // 2 - 150, 240, 300, 40).collidepoint(event.pos):
+                player_data["sound"] = not player_data["sound"]
+            elif pygame.Rect(WIDTH // 2 - 150, 310, 300, 40).collidepoint(event.pos):
+                player_data["music"] = not player_data["music"]
+            elif back_rect.collidepoint(event.pos):
                 save_data(player_data)
                 return
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
+            save_data(player_data)
+            return
 
-        pygame.display.flip()
-        clock.tick(60)
+    pygame.display.flip()
+    clock.tick(60)
 
 
-# --- Main Menu Loop ---
-running = True
-while running:
+    # --- Main Menu Loop ---
+    running = True
+    while running:
     zoom_progress += speed
     if zoom_progress >= 1.0:
-        zoom_progress = 0.0
+    zoom_progress = 0.0
 
     screen.fill((0, 0, 0))
 
@@ -286,9 +286,9 @@ while running:
 
     scale2 = 1.0 + zoom_progress
     if zoom_progress < 0.5:
-        scale2 = 1.0 + zoom_progress + 0.5
+    scale2 = 1.0 + zoom_progress + 0.5
     else:
-        scale2 = 1.0 + zoom_progress - 0.5
+    scale2 = 1.0 + zoom_progress - 0.5
 
     w2, h2 = int(WIDTH * scale2), int(HEIGHT * scale2)
     surf2 = pygame.transform.smoothscale(bg_original, (w2, h2))
@@ -314,25 +314,39 @@ while running:
     button_rects = []
 
     for i, option in enumerate(options):
-        y_pos = start_y + (i * spacing)
-        is_selected = i == selected_option
-        b_rect = draw_styled_button(screen, option, WIDTH // 2, y_pos, button_w, button_h, is_selected)
-        button_rects.append(b_rect)
+    y_pos = start_y + (i * spacing)
+    is_selected = i == selected_option
+    b_rect = draw_styled_button(screen, option, WIDTH // 2, y_pos, button_w, button_h, is_selected)
+    button_rects.append(b_rect)
 
     # Event Handling
     for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
-        elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_DOWN or event.key == pygame.K_s:
-                selected_option = (selected_option + 1) % len(options)
-            elif event.key == pygame.K_UP or event.key == pygame.K_w:
-                selected_option = (selected_option - 1) % len(options)
-            elif event.key == pygame.K_RETURN:
+    if event.type == pygame.QUIT:
+        pygame.quit()
+        sys.exit()
+    elif event.type == pygame.KEYDOWN:
+        if event.key == pygame.K_DOWN or event.key == pygame.K_s:
+            selected_option = (selected_option + 1) % len(options)
+        elif event.key == pygame.K_UP or event.key == pygame.K_w:
+            selected_option = (selected_option - 1) % len(options)
+        elif event.key == pygame.K_RETURN:
+            choice = options[selected_option]
+            if choice == "START GAME":
+                start_countdown_and_game()
+            elif choice == "CUSTOMIZATION":
+                customization_screen()
+            elif choice == "SETTINGS":
+                settings_screen()
+            elif choice == "EXIT":
+                pygame.quit()
+                sys.exit()
+    elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+        for i, b_rect in enumerate(button_rects):
+            if b_rect.collidepoint(event.pos):
+                selected_option = i
                 choice = options[selected_option]
                 if choice == "START GAME":
-                    start_countdown_and_game()
+                    start_countdown_and_group = start_countdown_and_game()
                 elif choice == "CUSTOMIZATION":
                     customization_screen()
                 elif choice == "SETTINGS":
@@ -340,20 +354,6 @@ while running:
                 elif choice == "EXIT":
                     pygame.quit()
                     sys.exit()
-        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            for i, b_rect in enumerate(button_rects):
-                if b_rect.collidepoint(event.pos):
-                    selected_option = i
-                    choice = options[selected_option]
-                    if choice == "START GAME":
-                        start_countdown_and_group = start_countdown_and_game()
-                    elif choice == "CUSTOMIZATION":
-                        customization_screen()
-                    elif choice == "SETTINGS":
-                        settings_screen()
-                    elif choice == "EXIT":
-                        pygame.quit()
-                        sys.exit()
 
     pygame.display.flip()
     clock.tick(60)
