@@ -4,6 +4,7 @@ import random
 import pygame
 from obstacle import ObstacleManager
 from movement.will_move import PlayerRunner
+from UI.pause import (PauseMenu)  # PauseMenu module ko import kiya gaya hai
 
 pygame.init()
 pygame.mixer.init()
@@ -29,12 +30,26 @@ except pygame.error:
     print(f"Error: Could not load background at {BG_PATH}")
     sys.exit()
 
+# --- BACKGROUND MUSIC SETUP (S2) ---
+for s2_ext in [".mp3", ".wav", ".ogg"]:
+    s2_path = os.path.join(ASSETS_DIR, f"S2{s2_ext}")
+    if os.path.exists(s2_path):
+        try:
+            pygame.mixer.music.load(s2_path)
+            pygame.mixer.music.play(-1)  # Infinite loop
+            pygame.mixer.music.set_volume(0.5)
+            print(f"Successfully loaded background music: {s2_path}")
+            break
+        except Exception as e:
+            print(f"Could not play music {s2_path}: {e}")
+
 zoom = 1.0
 ZOOM_SPEED = 0.0004535
 MAX_ZOOM = 1.735
 
 player_runner = PlayerRunner(WIDTH, HEIGHT)
 obstacle_manager = ObstacleManager(WIDTH, HEIGHT)
+pause_menu = PauseMenu(WIDTH, HEIGHT)
 
 # Lane ratios perfectly calibrated for 800x600 center perspective
 LANE_RATIOS = [
@@ -43,16 +58,52 @@ LANE_RATIOS = [
     {"top_x": 0.565, "bottom_x": 0.74, "top_y": 0.38},
 ]
 
-# --- COIN SYSTEM SETUP (Subway Surfers Style Trails) ---
+# --- GAME SYSTEMS (5 Lives & Coins) ---
 coins_collected = 0
 coins_list = []
 coin_spawn_timer = 0
+
+lives = 5
+max_lives = 5
+hit_invulnerability_timer = 0
 
 # Fonts (rendered on 800x600 surface)
 font_title = pygame.font.SysFont(None, 72)
 font_menu = pygame.font.SysFont(None, 36)
 font_gameover = pygame.font.SysFont(None, 45)
 font_hud = pygame.font.SysFont("Impact", 24)
+
+
+# --- HELPER FUNCTION: DRAW BATTERY ICON (5 Parts) ---
+def draw_battery(surface, x, y, current_lives, max_l=5):
+    bat_w, bat_h = 70, 22
+    tip_w, tip_h = 4, 10
+
+    # Battery body outline
+    bat_rect = pygame.Rect(x, y, bat_w, bat_h)
+    tip_rect = pygame.Rect(x + bat_w, y + (bat_h - tip_h) // 2, tip_w, tip_h)
+
+    pygame.draw.rect(surface, (220, 220, 220), bat_rect, 2, border_radius=4)
+    pygame.draw.rect(surface, (220, 220, 220), tip_rect, border_radius=2)
+
+    # Draw 5 inner segments
+    seg_margin = 3
+    total_inner_w = bat_w - (seg_margin * (max_l + 1))
+    seg_w = total_inner_w // max_l
+    seg_h = bat_h - (seg_margin * 2)
+
+    for i in range(max_l):
+        seg_x = x + seg_margin + i * (seg_w + seg_margin)
+        seg_y = y + seg_margin
+        seg_rect = pygame.Rect(seg_x, seg_y, seg_w, seg_h)
+
+        if i < current_lives:
+            color = (50, 230, 50) if current_lives > 2 else (230, 50, 50)
+        else:
+            color = (40, 40, 50)
+
+        pygame.draw.rect(surface, color, seg_rect, border_radius=2)
+
 
 # --- 3, 2, 1, START! COUNTDOWN ---
 countdown_steps = ["3", "2", "1", "START!"]
@@ -70,7 +121,6 @@ for step in countdown_steps:
         count_rect = count_surf.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 20))
         game_surface.blit(count_surf, count_rect)
 
-        # Scale game surface to fit 1280x720 window
         scaled_display = pygame.transform.smoothscale(game_surface, (DISP_WIDTH, DISP_HEIGHT))
         screen.blit(scaled_display, (0, 0))
         pygame.display.flip()
@@ -86,25 +136,27 @@ paused = False
 game_over = False
 frozen_snapshot = None
 
-# Pause Button Rect on 800x600 surface
-pause_button_rect = pygame.Rect(WIDTH - 65, 15, 45, 40)
+# Pause Button Rect on 800x600 surface (Aligned cleanly)
+pause_button_rect = pygame.Rect(WIDTH - 55, 15, 40, 40)
 
 while running:
     dt = clock.tick(60)
     events = pygame.event.get()
+
+    if hit_invulnerability_timer > 0:
+        hit_invulnerability_timer -= dt
 
     for event in events:
         if event.type == pygame.QUIT:
             running = False
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            # Map window mouse coordinates to 800x600 logic coordinates
             mx, my = event.pos
             logic_mx = int(mx * (WIDTH / DISP_WIDTH))
             logic_my = int(my * (HEIGHT / DISP_HEIGHT))
 
             if pause_button_rect.collidepoint((logic_mx, logic_my)) and not game_over:
-                paused = not paused
+                paused = True
 
         if game_over and event.type == pygame.KEYDOWN:
             if event.key == pygame.K_r or event.key == pygame.K_R:
@@ -114,27 +166,38 @@ while running:
                 obstacle_manager.obstacles.clear()
                 coins_list.clear()
                 coins_collected = 0
+                lives = 5
+                hit_invulnerability_timer = 0
                 zoom = 1.0
+                try:
+                    pygame.mixer.music.play(-1)
+                except:
+                    pass
 
-    # If paused
+    # --- IF PAUSED, CALL PROFESSIONAL PAUSE MENU ---
     if paused:
-        game_surface.fill((0, 0, 0))
-        overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 180))
-        game_surface.blit(overlay, (0, 0))
+        # Pause menu ko run karein aur current score paas karein
+        action = pause_menu.run(screen, coins_collected, clock, DISP_WIDTH, DISP_HEIGHT, game_surface)
 
-        pause_title = font_title.render("GAME PAUSED", True, (255, 255, 255))
-        resume_text = font_menu.render("Press P to Resume", True, (200, 200, 200))
-        game_surface.blit(pause_title, (WIDTH // 2 - pause_title.get_width() // 2, HEIGHT // 2 - 40))
-        game_surface.blit(resume_text, (WIDTH // 2 - resume_text.get_width() // 2, HEIGHT // 2 + 20))
-
-        scaled_display = pygame.transform.smoothscale(game_surface, (DISP_WIDTH, DISP_HEIGHT))
-        screen.blit(scaled_display, (0, 0))
-        pygame.display.flip()
-
-        for event in events:
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_p:
-                paused = False
+        if action == "RESUME":
+            paused = False
+        elif action == "RESTART":
+            game_over = False
+            paused = False
+            frozen_snapshot = None
+            obstacle_manager.obstacles.clear()
+            coins_list.clear()
+            coins_collected = 0
+            lives = 5
+            hit_invulnerability_timer = 0
+            zoom = 1.0
+            try:
+                pygame.mixer.music.play(-1)
+            except:
+                pass
+        elif action == "QUIT":
+            pygame.quit()
+            sys.exit()
         continue
 
     game_surface.fill((0, 0, 0))
@@ -168,12 +231,11 @@ while running:
         obstacle_manager.update_and_spawn(dt)
         player_runner.update(events)
 
-        # --- CONTINUOUS COIN TRAILS SPAWN (Subway Surfers Style) ---
+        # --- CONTINUOUS COIN TRAILS SPAWN ---
         coin_spawn_timer += dt
         if coin_spawn_timer > 1400:
             coin_spawn_timer = 0
             chosen_lane = random.randint(0, 2)
-            # Spawn a sequence of 4 coins in the same lane
             for i in range(4):
                 coins_list.append({"lane": chosen_lane, "progress": -0.12 * i})
 
@@ -182,7 +244,7 @@ while running:
             if coin["progress"] >= 1.0:
                 coins_list.remove(coin)
 
-        # --- NATURAL & ACCURATE PLAYER COLLISION RECT ---
+        # --- PLAYER COLLISION RECT ---
         if hasattr(player_runner, 'get_rect'):
             player_rect = player_runner.get_rect()
         elif hasattr(player_runner, 'rect'):
@@ -211,33 +273,44 @@ while running:
             pygame.draw.circle(game_surface, (255, 215, 0), (cx, cy), c_radius)
             pygame.draw.circle(game_surface, (180, 130, 0), (cx, cy), c_radius, 2)
 
-            # Coin Collection Check
             coin_rect = pygame.Rect(cx - c_radius, cy - c_radius, c_radius * 2, c_radius * 2)
             if player_rect.colliderect(coin_rect):
                 coins_collected += 1
                 coins_list.remove(coin)
 
-        player_runner.draw(game_surface)
+        # Flash player if invulnerable after hit
+        if hit_invulnerability_timer <= 0 or (hit_invulnerability_timer // 10) % 2 == 0:
+            player_runner.draw(game_surface)
 
-        # --- COLLISION CHECK & HIT CAPTURE ---
-        if obstacle_manager.check_collision(player_rect):
-            game_over = True
-            frozen_snapshot = game_surface.copy()
+        # --- COLLISION CHECK WITH 5 LIVES SYSTEM ---
+        if obstacle_manager.check_collision(player_rect) and hit_invulnerability_timer <= 0:
+            lives -= 1
+            hit_invulnerability_timer = 90  # ~1.5 seconds invulnerability
+            obstacle_manager.obstacles.clear()
+            if lives <= 0:
+                game_over = True
+                frozen_snapshot = game_surface.copy()
+                if pygame.mixer.music.get_busy():
+                    pygame.mixer.music.stop()
 
-        # --- RENDER HUD (Score & Pause Button) ---
+        # --- RENDER HUD (Coins, Battery Lives & Pause Button Perfectly Aligned) ---
+        # Coin count display
         pygame.draw.circle(game_surface, (255, 215, 0), (25, 25), 14)
         pygame.draw.circle(game_surface, (180, 130, 0), (25, 25), 14, 2)
         coin_label = font_hud.render(f"x {coins_collected}", True, (255, 255, 255))
         game_surface.blit(coin_label, (45, 15))
 
-        # Pause Button ("II" Icon)
+        # Battery Icon (5 Parts) positioned cleanly beside the pause button
+        draw_battery(game_surface, WIDTH - 145, 23, lives, max_lives)
+
+        # Pause Button ("II" Icon) aligned perfectly
         pygame.draw.rect(game_surface, (30, 30, 45), pause_button_rect, border_radius=6)
         pygame.draw.rect(game_surface, (200, 50, 50), pause_button_rect, 2, border_radius=6)
         game_surface.blit(font_hud.render("||", True, (255, 255, 255)),
-                          (pause_button_rect.x + 12, pause_button_rect.y + 8))
+                          (pause_button_rect.x + 11, pause_button_rect.y + 7))
 
     else:
-        # --- GAME OVER SCREEN (Frozen Snapshot) ---
+        # --- GAME OVER SCREEN ---
         if frozen_snapshot:
             game_surface.blit(frozen_snapshot, (0, 0))
 
@@ -245,12 +318,13 @@ while running:
         overlay.fill((120, 0, 0, 130))
         game_surface.blit(overlay, (0, 0))
 
-        text = font_gameover.render("HIT! GAME OVER - Press R to Restart", True, (255, 255, 255))
-        text_shadow = font_gameover.render("HIT! GAME OVER - Press R to Restart", True, (0, 0, 0))
+        text = font_gameover.render("GAME OVER - Press R to Restart", True, (255, 255, 255))
+        text_shadow = font_gameover.render("GAME OVER - Press R to Restart", True, (0, 0, 0))
 
         game_surface.blit(text_shadow, (WIDTH // 2 - text.get_width() // 2 + 2, HEIGHT // 2 - 20 + 2))
         game_surface.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 2 - 20))
-    # --- FINAL DISPLAY BLIT (Smoothscales 800x600 -> 1280x720 Window) ---
+
+    # --- FINAL DISPLAY BLIT ---
     scaled_display = pygame.transform.smoothscale(game_surface, (DISP_WIDTH, DISP_HEIGHT))
     screen.blit(scaled_display, (0, 0))
     pygame.display.flip()
