@@ -135,7 +135,7 @@ def run_loading_screen():
         pygame.display.flip()
         clock.tick(60)
 
-        # As soon as the loading bar hits 100%, transition into the Main Menu seamlessly
+        # ,As soon as the loading bar hits 100%, transition into the Main Menu seamlessly
         if loading_progress >= 100:
             pygame.time.delay(400)
             menu = MainMenu(screen, clock)
