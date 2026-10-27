@@ -79,6 +79,10 @@ player_name = chosen_character
 name_btn_rect = pygame.Rect(WIDTH // 2 - 160, HEIGHT - 150, 320, 50)
 save_btn_rect = pygame.Rect(0, 0, 0, 0)
 
+# Top-Left Back Arrow Icon Rect
+back_icon_rect = pygame.Rect(40, 40, 50, 50)
+
+
 def save_to_json(char, name):
     data = {"selected_character": char, "player_name": name}
     json_path = os.path.join(current_dir, "player_data.json")
@@ -88,6 +92,7 @@ def save_to_json(char, name):
         print(f"Saved to {json_path}: {data}")
     except Exception as e:
         print(f"Error saving JSON: {e}")
+
 
 while True:
     mouse_pos = pygame.mouse.get_pos()
@@ -102,12 +107,19 @@ while True:
                         chosen_character = characters[selected_index]["name"]
                         player_name = chosen_character
                         game_state = "ENTER_NAME"
+                    elif back_icon_rect.collidepoint(event.pos):
+                        # Back arrow clicked -> Return to menu_pg.py (Main Menu)
+                        print("Returning to Main Menu...")
+                        pygame.quit()
+                        os.system(f"python {os.path.join(parent_dir, 'menu_pg.py')}")
+                        sys.exit()
                 elif game_state == "ENTER_NAME":
                     if save_btn_rect.collidepoint(event.pos):
                         if player_name.strip() == "":
                             player_name = chosen_character
                         save_to_json(chosen_character, player_name)
-                        game_state = "PLAYING"
+                        # Save hone ke baad wapas isi file ke start (character selection page) par aa jayein
+                        game_state = "SELECT"
         if event.type == pygame.KEYDOWN:
             if game_state == "SELECT":
                 if event.key == pygame.K_LEFT or event.key == pygame.K_a:
@@ -118,15 +130,13 @@ while True:
                     chosen_character = characters[selected_index]["name"]
                     player_name = chosen_character
                     game_state = "ENTER_NAME"
-                elif event.key == pygame.K_ESCAPE:
-                    pygame.quit()
-                    sys.exit()
             elif game_state == "ENTER_NAME":
                 if event.key == pygame.K_RETURN:
                     if player_name.strip() == "":
                         player_name = chosen_character
                     save_to_json(chosen_character, player_name)
-                    game_state = "PLAYING"
+                    # Enter press karne par bhi wapas character selection page par aa jayein
+                    game_state = "SELECT"
                 elif event.key == pygame.K_BACKSPACE:
                     player_name = player_name[:-1]
                 elif event.key == pygame.K_ESCAPE:
@@ -136,9 +146,6 @@ while True:
                         if player_name == chosen_character:
                             player_name = ""
                         player_name += event.unicode
-            elif game_state == "PLAYING":
-                if event.key == pygame.K_ESCAPE:
-                    game_state = "SELECT"
 
     if bg_image:
         screen.blit(bg_image, (0, 0))
@@ -153,11 +160,21 @@ while True:
         pygame.draw.rect(screen, (0, 0, 0), header_rect)
         title_surf = font_title.render("SELECT YOUR RUNNER", True, BORDER_COLOR)
         screen.blit(title_surf, (WIDTH // 2 - title_surf.get_width() // 2, 58))
+
+        # Draw Back Arrow Icon on Top-Left (Links back to menu_pg)
+        back_hovered = back_icon_rect.collidepoint(mouse_pos)
+        icon_bg_color = (60, 90, 140) if back_hovered else (30, 50, 80)
+        pygame.draw.rect(screen, icon_bg_color, back_icon_rect, border_radius=10)
+        pygame.draw.rect(screen, BORDER_COLOR, back_icon_rect, 2, border_radius=10)
+        arrow_surf = font_name.render("←", True, TEXT_COLOR)
+        screen.blit(arrow_surf, (back_icon_rect.centerx - arrow_surf.get_width() // 2,
+                                 back_icon_rect.centery - arrow_surf.get_height() // 2))
+
         card_width, card_height = 110, 240
         spacing = 15
         total_width = (len(characters) * card_width) + ((len(characters) - 1) * spacing)
         start_x = (WIDTH - total_width) // 2
-        y_pos = HEIGHT // 2 - 120
+        y_pos = HEIGHT // 2 - 140
         for i, char in enumerate(characters):
             x_pos = start_x + (i * (card_width + spacing))
             is_selected = (i == selected_index)
@@ -179,16 +196,20 @@ while True:
             name_x = x_pos + (card_width // 2) - (name_surf.get_width() // 2)
             name_y = current_y + current_card_height - 42
             screen.blit(name_surf, (name_x, name_y))
+
         btn_hovered = name_btn_rect.collidepoint(mouse_pos)
         btn_bg_color = (230, 180, 0) if btn_hovered else BORDER_COLOR
         pygame.draw.rect(screen, btn_bg_color, name_btn_rect, border_radius=12)
         pygame.draw.rect(screen, (255, 255, 255), name_btn_rect, 2, border_radius=12)
         btn_text = font_name.render("CLICK TO ENTER NAME", True, (0, 0, 0))
-        screen.blit(btn_text, (name_btn_rect.centerx - btn_text.get_width() // 2, name_btn_rect.centery - btn_text.get_height() // 2))
+        screen.blit(btn_text, (name_btn_rect.centerx - btn_text.get_width() // 2,
+                               name_btn_rect.centery - btn_text.get_height() // 2))
+
         inst_bg = pygame.Rect(0, HEIGHT - 70, WIDTH, 60)
         pygame.draw.rect(screen, (0, 0, 0), inst_bg)
-        inst_surf = font_instruction.render("◀ ▶ Select Character | Click Button or Press [ENTER] | [ESC] Exit", True, TEXT_COLOR)
+        inst_surf = font_instruction.render("◀ ▶ Select Character | Click Button or Press [ENTER]", True, TEXT_COLOR)
         screen.blit(inst_surf, (WIDTH // 2 - inst_surf.get_width() // 2, HEIGHT - 50))
+
     elif game_state == "ENTER_NAME":
         box_width, box_height = 520, 260
         box_x = WIDTH // 2 - box_width // 2
@@ -206,17 +227,11 @@ while True:
         save_hovered = save_btn_rect.collidepoint(mouse_pos)
         pygame.draw.rect(screen, (46, 139, 87) if save_hovered else (34, 102, 64), save_btn_rect, border_radius=10)
         pygame.draw.rect(screen, (255, 255, 255), save_btn_rect, 2, border_radius=10)
-        save_txt = font_name.render("SAVE & START GAME", True, TEXT_COLOR)
-        screen.blit(save_txt, (save_btn_rect.centerx - save_txt.get_width() // 2, save_btn_rect.centery - save_txt.get_height() // 2))
+        save_txt = font_name.render("SAVE", True, TEXT_COLOR)
+        screen.blit(save_txt, (save_btn_rect.centerx - save_txt.get_width() // 2,
+                               save_btn_rect.centery - save_txt.get_height() // 2))
         sub_inst = font_instruction.render("[BACKSPACE] Delete | [ESC] Back to Selection", True, (200, 200, 200))
         screen.blit(sub_inst, (box_x + box_width // 2 - sub_inst.get_width() // 2, box_y + 205))
-    elif game_state == "PLAYING":
-        play_surf = font_title.render(f"Runner: {chosen_character}", True, BORDER_COLOR)
-        screen.blit(play_surf, (WIDTH // 2 - play_surf.get_width() // 2, HEIGHT // 2 - 60))
-        name_display = font_name.render(f"Player Name: {player_name}", True, TEXT_COLOR)
-        screen.blit(name_display, (WIDTH // 2 - name_display.get_width() // 2, HEIGHT // 2 + 10))
-        back_surf = font_instruction.render("Press [ESC] to go back to selection", True, (180, 180, 180))
-        screen.blit(back_surf, (WIDTH // 2 - back_surf.get_width() // 2, HEIGHT // 2 + 70))
 
     pygame.display.flip()
     clock.tick(60)
