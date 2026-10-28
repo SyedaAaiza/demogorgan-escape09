@@ -212,13 +212,11 @@ class MainMenu:
 
     def launch_customization(self):
         try:
-            import custom
-            if hasattr(custom, 'run'):
-                custom.run()
-            elif hasattr(custom, 'main'):
-                custom.main()
-        except ImportError as e:
-            print(f"[ERROR] Could not import custom.py: {e}")
+            from custom import CustomizationScreen
+            custom_screen = CustomizationScreen(self.screen, self.clock)
+            custom_screen.run()
+        except Exception as e:
+            print(f"[ERROR] Could not launch custom.py: {e}")
 
     def open_settings(self):
         in_settings = True
