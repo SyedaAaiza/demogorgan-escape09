@@ -14,8 +14,8 @@ class KeysController:
         self.is_jumping = False
         self.jump_count = 0
         self.max_jumps = 2
-        self.jump_velocity = -14
-        self.double_jump_velocity = -12
+        self.jump_velocity = -24
+        self.double_jump_velocity = -23
         self.gravity = 0.8
         self.y_velocity = 0
 

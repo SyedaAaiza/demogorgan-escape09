@@ -1,7 +1,7 @@
 import os
 import sys
 import json
-import pygame
+import
 
 class CustomizationScreen:
     def __init__(self, screen, clock):
