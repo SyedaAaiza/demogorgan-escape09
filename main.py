@@ -7,6 +7,9 @@ from UI.pause import PauseMenu
 from movement.will_move import PlayerRunner as WillRunner
 from obstacle import ObstacleManager
 
+# --- IMPORT GAME OVER UI FROM UI FOLDER ---
+from UI.game_over import AestheticHorrorGameOver
+
 # --- CHARACTER SELECTION ROUTING ---
 try:
     from movement.mike_move import PlayerRunner as MikeRunner
@@ -50,6 +53,9 @@ def run(volume=5, muted=False, selected_character="WILL"):
 
     WIDTH, HEIGHT = 800, 600
     game_surface = pygame.Surface((WIDTH, HEIGHT))
+
+    # Initialize Game Over UI
+    game_over_ui = AestheticHorrorGameOver(WIDTH, HEIGHT)
 
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     ASSETS_DIR = os.path.join(BASE_DIR, "assets")
@@ -95,7 +101,6 @@ def run(volume=5, muted=False, selected_character="WILL"):
     coin_spawn_timer = 0
 
     font_title = pygame.font.SysFont(None, 72)
-    font_gameover = pygame.font.SysFont(None, 45)
     font_hud = pygame.font.SysFont("Impact", 24)
 
     # Countdown
@@ -153,9 +158,21 @@ def run(volume=5, muted=False, selected_character="WILL"):
                 ):
                     paused = True
 
-            # Restart when 'R' key is pressed during hit freeze
-            if game_over and event.type == pygame.KEYDOWN:
-                if event.key in (pygame.K_r, pygame.K_R):
+            # --- GAME OVER INPUT PROCESSING ---
+            if game_over:
+                # Map display window clicks to logical surface surface resolution
+                event_copy = event
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    mx, my = event.pos
+                    logic_mx = int(mx * (WIDTH / DISP_WIDTH))
+                    logic_my = int(my * (HEIGHT / DISP_HEIGHT))
+                    event_copy = pygame.event.Event(
+                        pygame.MOUSEBUTTONDOWN,
+                        {"button": event.button, "pos": (logic_mx, logic_my)},
+                    )
+
+                action = game_over_ui.handle_input(event_copy)
+                if action == "restart":
                     game_over = False
                     paused = False
                     frozen_snapshot = None
@@ -168,6 +185,11 @@ def run(volume=5, muted=False, selected_character="WILL"):
                         pygame.mixer.music.set_volume(actual_volume)
                     except Exception as e:
                         print(f"Error resetting music: {e}")
+                elif action == "menu":
+                    running = False
+                elif action == "quit":
+                    pygame.quit()
+                    sys.exit()
 
         if paused:
             action = pause_menu.run(
@@ -287,7 +309,6 @@ def run(volume=5, muted=False, selected_character="WILL"):
             # --- IMMEDIATELY FREEZE GAME ON COLLISION ---
             if obstacle_manager.check_collision(player_runner):
                 game_over = True
-                # Captures exact frame state when collision happened
                 frozen_snapshot = game_surface.copy()
                 if pygame.mixer.music.get_busy():
                     pygame.mixer.music.stop()
@@ -316,30 +337,12 @@ def run(volume=5, muted=False, selected_character="WILL"):
             )
 
         else:
-            # Render frozen collision frame
+            # Render Game Over UI over frozen frame
             if frozen_snapshot:
                 game_surface.blit(frozen_snapshot, (0, 0))
 
-            overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-            overlay.fill((150, 0, 0, 140))
-            game_surface.blit(overlay, (0, 0))
-
-            text = font_gameover.render(
-                "HIT DETECTED! - Press R to Restart", True, (255, 255, 255)
-            )
-            text_shadow = font_gameover.render(
-                "HIT DETECTED! - Press R to Restart", True, (0, 0, 0)
-            )
-
-            game_surface.blit(
-                text_shadow,
-                (
-                    WIDTH // 2 - text.get_width() // 2 + 2,
-                    HEIGHT // 2 - 20 + 2,
-                ),
-            )
-            game_surface.blit(
-                text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 2 - 20)
+            game_over_ui.draw(
+                game_surface, final_score=coins_collected, max_lives=5
             )
 
         scaled_display = pygame.transform.smoothscale(

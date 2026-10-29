@@ -1,14 +1,5 @@
 import os
-import sys
 import pygame
-
-pygame.init()
-
-# Screen dimensions
-WIDTH, HEIGHT = 800, 600
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Stranger Things - Game Over UI")
-clock = pygame.time.Clock()
 
 
 class AestheticHorrorGameOver:
@@ -17,7 +8,7 @@ class AestheticHorrorGameOver:
         self.sw = screen_w
         self.sh = screen_h
 
-        # BG4.jpeg load karna
+        # BG4.jpeg background loading
         self.bg_image = None
         if os.path.exists("BG4.jpeg"):
             try:
@@ -34,7 +25,7 @@ class AestheticHorrorGameOver:
         self.stat_font = pygame.font.SysFont("arial", 22)
         self.btn_font = pygame.font.SysFont("arial", 20, bold=True)
 
-        # Buttons Setup
+        # Interactive Buttons Setup
         btn_w, btn_h = 240, 48
         center_x = self.sw // 2 - btn_w // 2
 
@@ -42,14 +33,14 @@ class AestheticHorrorGameOver:
         self.btn_menu = pygame.Rect(center_x, 405, btn_w, btn_h)
         self.btn_quit = pygame.Rect(center_x, 470, btn_w, btn_h)
 
-    def draw(self, surface, final_score=1250, max_lives=5):
+    def draw(self, surface, final_score=0, max_lives=5):
         # 1. Background Image (BG4.jpeg)
         if self.bg_image:
             surface.blit(self.bg_image, (0, 0))
         else:
             surface.fill((10, 10, 15))
 
-        # 2. Dark Reddish Overlay (No Box)
+        # 2. Dark Reddish Tint Overlay
         overlay = pygame.Surface((self.sw, self.sh), pygame.SRCALPHA)
         overlay.fill((5, 2, 8, 225))
         surface.blit(overlay, (0, 0))
@@ -61,7 +52,7 @@ class AestheticHorrorGameOver:
         title_rect = title_surf.get_rect(center=(self.sw // 2, 90))
         surface.blit(title_surf, title_rect)
 
-        # 4. Captions
+        # 4. Horror Captions
         q1_surf = self.quote_font.render(
             '"The gate closes behind you forever..."', True, (160, 150, 170)
         )
@@ -98,7 +89,7 @@ class AestheticHorrorGameOver:
             lives_surf, lives_surf.get_rect(center=(self.sw // 2, 275))
         )
 
-        # 6. Interactive Buttons
+        # 6. Buttons
         mouse_pos = pygame.mouse.get_pos()
         buttons = [
             (self.btn_restart, "TRY AGAIN [R]", (140, 20, 30)),
@@ -145,28 +136,3 @@ class AestheticHorrorGameOver:
                 return "quit"
 
         return None
-
-
-if __name__ == "__main__":
-    game_over_ui = AestheticHorrorGameOver(WIDTH, HEIGHT)
-    running = True
-
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-
-            action = game_over_ui.handle_input(event)
-            if action == "restart":
-                print("Action: Restart")
-            elif action == "menu":
-                print("Action: Menu")
-            elif action == "quit":
-                running = False
-
-        game_over_ui.draw(screen, final_score=1450, max_lives=5)
-        pygame.display.flip()
-        clock.tick(60)
-
-    pygame.quit()
-    sys.exit()
