@@ -3,7 +3,9 @@ import pygame
 from PIL import Image
 from keys_control import KeysController
 
+
 class PlayerRunner:
+
     def __init__(self, width=800, height=600):
         self.width = width
         self.height = height
@@ -18,9 +20,13 @@ class PlayerRunner:
 
         for i in range(1, 6):
             path = os.path.join(assets_dir, f"will{i}.jpeg")
-            cleaned_img = self.clean_jpeg_background(path, target_size=(130, 130))
+            cleaned_img = self.clean_jpeg_background(
+                path, target_size=(130, 130)
+            )
             self.sprites_right.append(cleaned_img)
-            self.sprites_left.append(pygame.transform.flip(cleaned_img, True, False))
+            self.sprites_left.append(
+                pygame.transform.flip(cleaned_img, True, False)
+            )
 
         # Initial State
         self.controller = KeysController()
@@ -30,6 +36,11 @@ class PlayerRunner:
 
         self.current_frame = 0.0
         self.anim_speed = 0.25
+
+        # Exposed surface & coordinates for pixel-perfect mask collisions
+        self.image = self.sprites_right[0]
+        self.x = self.char_x
+        self.y = self.char_y
 
     def clean_jpeg_background(self, image_path, target_size=(130, 130)):
         if not os.path.exists(image_path):
@@ -57,25 +68,40 @@ class PlayerRunner:
 
     def update(self, events):
         # Update Controls & Physics
-        self.char_x, self.char_y, self.facing_right, self.is_jumping, self.is_rolling, self.jump_count = self.controller.update(
+        (
+            self.char_x,
+            self.char_y,
+            self.facing_right,
+            self.is_jumping,
+            self.is_rolling,
+            self.jump_count,
+        ) = self.controller.update(
             self.char_x, self.char_y, self.ground_y, self.facing_right, events
         )
 
         # Animation Frame Update
-        self.current_frame = (self.current_frame + self.anim_speed) % len(self.sprites_right)
+        self.current_frame = (self.current_frame + self.anim_speed) % len(
+            self.sprites_right
+        )
 
     def draw(self, surface):
-        # Create a transparent surface for the character frame
-        char_surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-
-        active_set = self.sprites_right if self.facing_right else self.sprites_left
+        active_set = (
+            self.sprites_right if self.facing_right else self.sprites_left
+        )
         render_image = active_set[int(self.current_frame)]
 
         if self.is_rolling:
             render_image = pygame.transform.scale(render_image, (130, 70))
 
         draw_y = self.char_y if not self.is_rolling else self.char_y + 60
-        char_surface.blit(render_image, (self.char_x, draw_y))
 
-        # Blit the character layer onto your target surface
-        surface.blit(char_surface, (0, 0))
+        # Update exposed collision properties accurately to the cropped sprite frame
+        self.image = render_image
+        self.x = self.char_x
+        self.y = draw_y
+
+        # Directly blit image at character coordinates (no screen-wide container)
+        surface.blit(self.image, (self.x, self.y))
+
+    def get_rect(self):
+        return pygame.Rect(self.x, self.y, 130, 70 if self.is_rolling else 130)
