@@ -3,23 +3,29 @@ import pygame
 
 class KeysController:
     def __init__(self):
-        # Widened lane coordinates (Left: 150 | Center: 335 | Right: 520)
-        self.lanes = [150, 335, 520]
+        # 1. PERMEANT LANE X-POSITIONS
+        # main.py के LANE_RATIOS (0.16, 0.475, 0.80) के साथ 800px विड्थ पर 100% एलाइंड
+        self.lanes = [128, 345, 555]
         self.current_lane = 1  # Start in Center Lane
 
-        # Smooth transition speed between lanes
-        self.lane_transition_speed = 30
+        # 2. FAST LANE TRANSITION SPEED
+        # साइड लेन्स में तुरंत शिफ्ट करने के लिए स्पीड बढ़ा दी गई है
+        self.lane_transition_speed = 45
 
-        # Jump & Double Jump physics
+        # 3. BALANCED FAST JUMP & GRAVITY PHYSICS
         self.is_jumping = False
         self.jump_count = 0
         self.max_jumps = 2
-        self.jump_velocity = -24
-        self.double_jump_velocity = -23
-        self.gravity = 0.8
+
+        # -22 और -20 से जंप तेज होगी पर स्क्रीन से बाहर नहीं जाएगी
+        self.jump_velocity = -35
+        self.double_jump_velocity = -20
+
+        # High gravity ताकि जंप क्विक और रिस्पॉन्सिव रहे (लटकने वाली न लगे)
+        self.gravity = 1.6
         self.y_velocity = 0
 
-        # Crouch state (Replaced roll state with proper crouch logic)
+        # Crouch state
         self.is_crouching = False
 
     def update(self, char_x, char_y, ground_y, facing_right, events):
@@ -50,14 +56,14 @@ class KeysController:
                         self.jump_count += 1
                         self.y_velocity = self.double_jump_velocity
 
-        # Smooth lane slide
+        # Smooth and Instant Lane Slide
         target_x = self.lanes[self.current_lane]
         if char_x < target_x:
             char_x = min(target_x, char_x + self.lane_transition_speed)
         elif char_x > target_x:
             char_x = max(target_x, char_x - self.lane_transition_speed)
 
-        # Jump physics update
+        # Independent Jump Physics (Works identically in ALL lanes)
         if self.is_jumping:
             char_y += self.y_velocity
             self.y_velocity += self.gravity
@@ -68,5 +74,4 @@ class KeysController:
                 self.jump_count = 0
                 self.y_velocity = 0
 
-        # Returning self.is_crouching instead of self.is_rolling
         return char_x, char_y, facing_right, self.is_jumping, self.is_crouching, self.jump_count
