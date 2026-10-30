@@ -1,5 +1,6 @@
 import sys
 import os
+import json
 import pygame
 
 # --- COLOR PALETTE ---
@@ -8,6 +9,32 @@ COLOR_NEON_RED = (255, 45, 0)
 COLOR_DARK_RED = (80, 0, 0)
 COLOR_WHITE = (245, 245, 245)
 COLOR_LIGHT_GRAY = (190, 190, 200)
+
+# --- ALAG PLAYER DATA JSON LOADER ---
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Single / Root directory fallback search for player_data.json
+POSSIBLE_PLAYER_DATA_PATHS = [
+    os.path.join(BASE_DIR, "player_data.json"),
+    os.path.join(BASE_DIR, "..", "player_data.json"),
+    os.path.join("player_data.json")
+]
+
+def load_player_username():
+    """Separate player_data.json file se name fetch karta hai."""
+    for filepath in POSSIBLE_PLAYER_DATA_PATHS:
+        if os.path.exists(filepath):
+            try:
+                with open(filepath, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    # Check commonly used keys in JSON
+                    name = data.get("username") or data.get("name") or data.get("player_name")
+                    if name:
+                        return str(name).upper()[:12]
+            except Exception as e:
+                print(f"Error reading {filepath}: {e}")
+    return "PLAYER 01"  # Default aesthetic fallback name
+
 
 # ==========================================
 # BUTTON CLASS (Fully Rounded / Pill Shape)
@@ -32,8 +59,7 @@ class Button:
 
         btn_surface = pygame.Surface((self.rect.width, self.rect.height), pygame.SRCALPHA)
         radius = self.rect.height // 2
-        pygame.draw.rect(btn_surface, (10, 10, 15, bg_alpha), (0, 0, self.rect.width, self.rect.height),
-                         border_radius=radius)
+        pygame.draw.rect(btn_surface, (10, 10, 15, bg_alpha), (0, 0, self.rect.width, self.rect.height), border_radius=radius)
         surface.blit(btn_surface, self.rect.topleft)
 
         pygame.draw.rect(surface, border_color, self.rect, width=3, border_radius=radius)
@@ -60,16 +86,18 @@ class Button:
 # MAIN MENU CLASS
 # ==========================================
 class MainMenu:
-    def __init__(self, screen, clock):
+    def __init__(self, screen, clock=None):
         self.screen = screen
-        self.clock = clock
+        self.clock = clock if clock else pygame.time.Clock()
         self.SCREEN_WIDTH, self.SCREEN_HEIGHT = self.screen.get_size()
         self.FPS = 60
 
-        # --- HORROR & STYLISH FONT LOADING ---
+        # --- FONT LOADING ---
         possible_font_paths = [
             os.path.join(os.path.dirname(__file__), "..", "assets", "horror_font.ttf"),
-            os.path.join("assets", "horror_font.ttf")
+            os.path.join(os.path.dirname(__file__), "..", "assets", "horror.ttf"),
+            os.path.join("assets", "horror_font.ttf"),
+            os.path.join("assets", "horror.ttf")
         ]
 
         self.FONT_BUTTON = None
@@ -81,23 +109,23 @@ class MainMenu:
                     self.FONT_BUTTON = pygame.font.Font(fpath, 22)
                     self.FONT_BODY = pygame.font.Font(fpath, 20)
                     break
-                except:
+                except Exception:
                     pass
 
         if not self.FONT_BUTTON:
             try:
                 self.FONT_BUTTON = pygame.font.SysFont("chiller", 30, bold=True)
-            except:
+            except Exception:
                 self.FONT_BUTTON = pygame.font.SysFont("impact", 24)
 
         if not self.FONT_BODY:
             self.FONT_BODY = pygame.font.SysFont("consolas", 22)
 
         self.FONT_COUNTDOWN = pygame.font.SysFont("impact", 120)
+        self.FONT_USER = pygame.font.SysFont("georgia", 18, bold=True)
 
-        # --- LOAD BACKGROUND ASSET ---
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        BG_PATH = os.path.join(base_dir, "..", "assets", "trees.jpeg")
+        # --- BACKGROUND LOADING ---
+        BG_PATH = os.path.join(BASE_DIR, "..", "assets", "trees.jpeg")
         if not os.path.exists(BG_PATH):
             if os.path.exists(os.path.join("assets", "trees.jpeg")):
                 BG_PATH = os.path.join("assets", "trees.jpeg")
@@ -109,14 +137,37 @@ class MainMenu:
             self.base_bg = pygame.Surface((self.SCREEN_WIDTH, self.SCREEN_HEIGHT))
             self.base_bg.fill((15, 10, 20))
 
-        # Zoom Variables
         self.zoom_scale = 1.0
         self.zoom_direction = 1
         self.zoom_speed = 0.0006
 
-        # --- GLOBAL SETTINGS STATE ---
         self.sound_volume = 5
         self.sound_muted = False
+
+    def draw_top_left_username(self):
+        """Top-Left Aesthetic Pill Badge for Username from player_data.json"""
+        username = load_player_username()
+
+        user_badge_w, user_badge_h = 230, 46
+        user_x, user_y = 35, 30
+
+        # Translucent Dark Background Pill
+        user_surf = pygame.Surface((user_badge_w, user_badge_h), pygame.SRCALPHA)
+        pygame.draw.rect(user_surf, (15, 8, 22, 210), (0, 0, user_badge_w, user_badge_h), border_radius=23)
+        pygame.draw.rect(user_surf, COLOR_NEON_RED, (0, 0, user_badge_w, user_badge_h), width=2, border_radius=23)
+
+        # Glowing Neon Red Status Indicator Dot
+        pygame.draw.circle(user_surf, COLOR_RED, (24, user_badge_h // 2), 10)
+        pygame.draw.circle(user_surf, COLOR_WHITE, (24, user_badge_h // 2), 4)
+
+        self.screen.blit(user_surf, (user_x, user_y))
+
+        # Text Labels inside Badge
+        tag_lbl = self.FONT_BODY.render("AGENT:", True, (160, 150, 170))
+        name_lbl = self.FONT_USER.render(username, True, COLOR_WHITE)
+
+        self.screen.blit(tag_lbl, (user_x + 44, user_y + 5))
+        self.screen.blit(name_lbl, (user_x + 44, user_y + 21))
 
     def show_warning_and_countdown(self):
         showing_warning = True
@@ -178,7 +229,6 @@ class MainMenu:
             pygame.display.flip()
             self.clock.tick(self.FPS)
 
-        # --- COUNTDOWN ---
         for count in [3, 2, 1]:
             start_ticks = pygame.time.get_ticks()
             while pygame.time.get_ticks() - start_ticks < 900:
@@ -204,7 +254,7 @@ class MainMenu:
         try:
             import main
             if hasattr(main, 'run'):
-                main.run()
+                main.run(volume=self.sound_volume, muted=self.sound_muted)
             elif hasattr(main, 'main'):
                 main.main()
         except ImportError as e:
@@ -243,15 +293,18 @@ class MainMenu:
 
                 if vol_down_btn.is_clicked(mouse_pos, event):
                     self.sound_volume = max(0, self.sound_volume - 1)
-                    pygame.mixer.music.set_volume(0 if self.sound_muted else self.sound_volume / 10.0)
+                    if pygame.mixer.get_init():
+                        pygame.mixer.music.set_volume(0 if self.sound_muted else self.sound_volume / 10.0)
 
                 if vol_up_btn.is_clicked(mouse_pos, event):
                     self.sound_volume = min(10, self.sound_volume + 1)
-                    pygame.mixer.music.set_volume(0 if self.sound_muted else self.sound_volume / 10.0)
+                    if pygame.mixer.get_init():
+                        pygame.mixer.music.set_volume(0 if self.sound_muted else self.sound_volume / 10.0)
 
                 if mute_btn.is_clicked(mouse_pos, event):
                     self.sound_muted = not self.sound_muted
-                    pygame.mixer.music.set_volume(0 if self.sound_muted else self.sound_volume / 10.0)
+                    if pygame.mixer.get_init():
+                        pygame.mixer.music.set_volume(0 if self.sound_muted else self.sound_volume / 10.0)
 
             self.zoom_scale += self.zoom_speed * self.zoom_direction
             if self.zoom_scale >= 1.35:
@@ -343,6 +396,9 @@ class MainMenu:
             bg_y = (self.SCREEN_HEIGHT - current_h) // 2
 
             self.screen.blit(scaled_bg, (bg_x, bg_y))
+
+            # --- RENDER TOP-LEFT USERNAME BADGE FROM player_data.json ---
+            self.draw_top_left_username()
 
             for btn in buttons:
                 btn.draw(self.screen)

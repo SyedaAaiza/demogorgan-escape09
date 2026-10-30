@@ -1,6 +1,12 @@
 import os
 import pygame
 
+# --- HIGH SCORE LOADER IMPORT ---
+try:
+    from UI.high_score_mngr import load_high_score
+except ImportError:
+    from high_score_mngr import load_high_score
+
 
 class AestheticHorrorGameOver:
 
@@ -22,25 +28,25 @@ class AestheticHorrorGameOver:
         # Fonts
         self.title_font = pygame.font.SysFont("georgia", 32, bold=True)
         self.quote_font = pygame.font.SysFont("georgia", 16, italic=True)
-        self.stat_font = pygame.font.SysFont("arial", 22)
+        self.stat_font = pygame.font.SysFont("arial", 20)
+        self.high_score_font = pygame.font.SysFont("arial", 22, bold=True)
         self.btn_font = pygame.font.SysFont("arial", 20, bold=True)
 
         # Interactive Buttons Setup
-        btn_w, btn_h = 240, 48
-        center_x = self.sw // 2 - btn_w // 2
+        btn_w, btn_h = 250, 50
+        center_x = (self.sw // 2) - (btn_w // 2)
 
-        self.btn_restart = pygame.Rect(center_x, 340, btn_w, btn_h)
-        self.btn_menu = pygame.Rect(center_x, 405, btn_w, btn_h)
-        self.btn_quit = pygame.Rect(center_x, 470, btn_w, btn_h)
+        self.btn_restart = pygame.Rect(center_x, 370, btn_w, btn_h)
+        self.btn_quit = pygame.Rect(center_x, 435, btn_w, btn_h)
 
     def draw(self, surface, final_score=0, max_lives=5):
-        # 1. Background Image (BG4.jpeg)
+        # 1. Background Image
         if self.bg_image:
             surface.blit(self.bg_image, (0, 0))
         else:
             surface.fill((10, 10, 15))
 
-        # 2. Dark Reddish Tint Overlay
+        # 2. Dark Overlay
         overlay = pygame.Surface((self.sw, self.sh), pygame.SRCALPHA)
         overlay.fill((5, 2, 8, 225))
         surface.blit(overlay, (0, 0))
@@ -49,7 +55,7 @@ class AestheticHorrorGameOver:
         title_surf = self.title_font.render(
             "FEET FROM FREEDOM", True, (210, 20, 30)
         )
-        title_rect = title_surf.get_rect(center=(self.sw // 2, 90))
+        title_rect = title_surf.get_rect(center=(self.sw // 2, 80))
         surface.blit(title_surf, title_rect)
 
         # 4. Horror Captions
@@ -62,39 +68,47 @@ class AestheticHorrorGameOver:
             (190, 50, 60),
         )
 
-        surface.blit(q1_surf, q1_surf.get_rect(center=(self.sw // 2, 140)))
-        surface.blit(q2_surf, q2_surf.get_rect(center=(self.sw // 2, 168)))
+        surface.blit(q1_surf, q1_surf.get_rect(center=(self.sw // 2, 125)))
+        surface.blit(q2_surf, q2_surf.get_rect(center=(self.sw // 2, 150)))
 
         # Separator Line
         pygame.draw.line(
             surface,
             (90, 20, 30),
-            (self.sw // 2 - 200, 200),
-            (self.sw // 2 + 200, 200),
+            ((self.sw // 2) - 200, 180),
+            ((self.sw // 2) + 200, 180),
             2,
         )
 
-        # 5. Stats
+        # 5. Load High Score from JSON
+        high_score = load_high_score()
+
+        # 6. Stats & High Score Display
         score_surf = self.stat_font.render(
             f"FINAL SCORE : {int(final_score)}", True, (220, 220, 230)
+        )
+        best_surf = self.high_score_font.render(
+            f"BEST HIGH SCORE : {int(high_score)}", True, (255, 215, 0)
         )
         lives_surf = self.stat_font.render(
             f"LIVES REMAINING : 0 / {max_lives}", True, (150, 40, 50)
         )
 
         surface.blit(
-            score_surf, score_surf.get_rect(center=(self.sw // 2, 240))
+            score_surf, score_surf.get_rect(center=(self.sw // 2, 215))
         )
         surface.blit(
-            lives_surf, lives_surf.get_rect(center=(self.sw // 2, 275))
+            best_surf, best_surf.get_rect(center=(self.sw // 2, 255))
+        )
+        surface.blit(
+            lives_surf, lives_surf.get_rect(center=(self.sw // 2, 295))
         )
 
-        # 6. Buttons
+        # 7. Buttons Drawing
         mouse_pos = pygame.mouse.get_pos()
         buttons = [
             (self.btn_restart, "TRY AGAIN [R]", (140, 20, 30)),
-            (self.btn_menu, "MAIN MENU [M]", (35, 35, 50)),
-            (self.btn_quit, "GIVE UP [Q]", (25, 25, 35)),
+            (self.btn_quit, "GIVE UP [Q]", (35, 35, 50)),
         ]
 
         for rect, label, base_color in buttons:
@@ -122,17 +136,13 @@ class AestheticHorrorGameOver:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_r:
                 return "restart"
-            elif event.key == pygame.K_m:
+            elif event.key in (pygame.K_q, pygame.K_m, pygame.K_ESCAPE):
                 return "menu"
-            elif event.key == pygame.K_q:
-                return "quit"
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if self.btn_restart.collidepoint(event.pos):
                 return "restart"
-            elif self.btn_menu.collidepoint(event.pos):
-                return "menu"
             elif self.btn_quit.collidepoint(event.pos):
-                return "quit"
+                return "menu"
 
         return None
