@@ -1,0 +1,10 @@
+[33mcommit feb95c54c688e72f4af2ed3c8388936250acfc74[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: Muhammad Umar Jamal <12umarjamal24@gmail.com>
+Date:   Fri Oct 30 12:20:57 2026 +0500
+
+    Add character movement files
+
+ .idea/demogorgan escape game.iml          |  2 [32m+[m[31m-[m
+ .idea/runConfigurations/customization.xml | 28 [32m++++++++++++++++[m
+ movement/will_move.py                     | 54 [32m++++[m[31m---------------------------[m
+ 3 files changed, 36 insertions(+), 48 deletions(-)
