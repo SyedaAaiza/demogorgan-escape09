@@ -1,7 +1,9 @@
+import json
 import os
 import sys
-import json
 import pygame
+from main import run as run_game
+
 
 class CustomizationScreen:
     def __init__(self, screen, clock):
@@ -90,6 +92,17 @@ class CustomizationScreen:
         except Exception as e:
             print(f"Error saving JSON: {e}")
 
+    def launch_game(self):
+        if self.player_name.strip() == "":
+            self.player_name = self.chosen_character
+        self.save_to_json(self.chosen_character, self.player_name)
+
+        print(f"Launching main.py with selected character: {self.chosen_character}")
+        run_game(selected_character=self.chosen_character)
+
+        self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        self.WIDTH, self.HEIGHT = self.screen.get_size()
+
     def run(self):
         running = True
         while running:
@@ -106,21 +119,18 @@ class CustomizationScreen:
                                 self.player_name = self.chosen_character
                                 self.game_state = "ENTER_NAME"
                             elif self.back_icon_rect.collidepoint(event.pos):
-                                # Smoothly return back to Main Menu without crashing or os.system
                                 print("Returning to Main Menu...")
                                 return
                         elif self.game_state == "ENTER_NAME":
                             if self.save_btn_rect.collidepoint(event.pos):
-                                if self.player_name.strip() == "":
-                                    self.player_name = self.chosen_character
-                                self.save_to_json(self.chosen_character, self.player_name)
+                                self.launch_game()
                                 self.game_state = "SELECT"
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         if self.game_state == "ENTER_NAME":
                             self.game_state = "SELECT"
                         else:
-                            return  # Return to Main Menu on ESC
+                            return
 
                     if self.game_state == "SELECT":
                         if event.key == pygame.K_LEFT or event.key == pygame.K_a:
@@ -133,9 +143,7 @@ class CustomizationScreen:
                             self.game_state = "ENTER_NAME"
                     elif self.game_state == "ENTER_NAME":
                         if event.key == pygame.K_RETURN:
-                            if self.player_name.strip() == "":
-                                self.player_name = self.chosen_character
-                            self.save_to_json(self.chosen_character, self.player_name)
+                            self.launch_game()
                             self.game_state = "SELECT"
                         elif event.key == pygame.K_BACKSPACE:
                             self.player_name = self.player_name[:-1]
@@ -172,6 +180,7 @@ class CustomizationScreen:
                 total_width = (len(self.characters) * card_width) + ((len(self.characters) - 1) * spacing)
                 start_x = (self.WIDTH - total_width) // 2
                 y_pos = self.HEIGHT // 2 - 140
+
                 for i, char in enumerate(self.characters):
                     x_pos = start_x + (i * (card_width + spacing))
                     is_selected = (i == self.selected_index)
@@ -224,7 +233,7 @@ class CustomizationScreen:
                 save_hovered = self.save_btn_rect.collidepoint(mouse_pos)
                 pygame.draw.rect(self.screen, (46, 139, 87) if save_hovered else (34, 102, 64), self.save_btn_rect, border_radius=10)
                 pygame.draw.rect(self.screen, (255, 255, 255), self.save_btn_rect, 2, border_radius=10)
-                save_txt = self.font_name.render("SAVE", True, self.TEXT_COLOR)
+                save_txt = self.font_name.render("SAVE & PLAY", True, self.TEXT_COLOR)
                 self.screen.blit(save_txt, (self.save_btn_rect.centerx - save_txt.get_width() // 2,
                                        self.save_btn_rect.centery - save_txt.get_height() // 2))
                 sub_inst = self.font_instruction.render("[BACKSPACE] Delete | [ESC] Back to Selection", True, (200, 200, 200))
@@ -232,6 +241,7 @@ class CustomizationScreen:
 
             pygame.display.flip()
             self.clock.tick(60)
+
 
 if __name__ == "__main__":
     pygame.init()

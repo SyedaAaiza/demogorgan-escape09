@@ -2,6 +2,7 @@ import os
 import pygame
 from keys_control import KeysController
 
+
 class PlayerRunner:
     def __init__(self, width=800, height=600):
         self.width = width
@@ -11,17 +12,31 @@ class PlayerRunner:
         assets_dir = os.path.join(base_dir, "..", "assets")
         self.sprites_right = []
         self.sprites_left = []
+
+        # Yahan size barha kar (170, 170) kar diya gaya hai
+        self.char_w = 170
+        self.char_h = 170
+
         for i in range(1, 6):
-            path = os.path.join(assets_dir, f"mike{i}.png")
-            if not os.path.exists(path):
-                surf = pygame.Surface((130, 130), pygame.SRCALPHA)
-                surf.fill((255, 0, 0, 0))
+            img = None
+            for ext in [".png", ".PNG", ".jpeg", ".JPEG", ".jpg", ".JPG"]:
+                path = os.path.join(assets_dir, f"mike{i}{ext}")
+                if os.path.exists(path):
+                    try:
+                        raw = pygame.image.load(path).convert_alpha()
+                        img = pygame.transform.smoothscale(raw, (self.char_w, self.char_h))
+                        break
+                    except Exception as e:
+                        print(f"Error loading {path}: {e}")
+
+            if img is None:
+                surf = pygame.Surface((self.char_w, self.char_h), pygame.SRCALPHA)
+                surf.fill((220, 20, 60, 200))
                 img = surf
-            else:
-                raw = pygame.image.load(path).convert_alpha()
-                img = pygame.transform.smoothscale(raw, (130, 130))
+
             self.sprites_right.append(img)
             self.sprites_left.append(pygame.transform.flip(img, True, False))
+
         self.controller = KeysController()
         self.char_x = self.controller.lanes[1]
         self.char_y = self.ground_y
@@ -33,14 +48,15 @@ class PlayerRunner:
         self.y = self.char_y
 
     def update(self, events):
-        (self.char_x, self.char_y, self.facing_right, self.is_jumping, self.is_rolling, self.jump_count,) = self.controller.update(self.char_x, self.char_y, self.ground_y, self.facing_right, events)
+        (self.char_x, self.char_y, self.facing_right, self.is_jumping, self.is_rolling,
+         self.jump_count,) = self.controller.update(self.char_x, self.char_y, self.ground_y, self.facing_right, events)
         self.current_frame = (self.current_frame + self.anim_speed) % len(self.sprites_right)
 
     def draw(self, surface):
         active_set = self.sprites_right if self.facing_right else self.sprites_left
         render_image = active_set[int(self.current_frame)]
         if self.is_rolling:
-            render_image = pygame.transform.scale(render_image, (130, 70))
+            render_image = pygame.transform.scale(render_image, (self.char_w, self.char_h // 2))
         draw_y = self.char_y if not self.is_rolling else self.char_y + 60
         self.image = render_image
         self.x = self.char_x
@@ -48,4 +64,4 @@ class PlayerRunner:
         surface.blit(self.image, (self.x, self.y))
 
     def get_rect(self):
-        return pygame.Rect(self.x, self.y, 130, 70 if self.is_rolling else 130)
+        return pygame.Rect(self.x, self.y, self.char_w, (self.char_h // 2) if self.is_rolling else self.char_h)
