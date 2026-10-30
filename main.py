@@ -26,7 +26,7 @@ except ImportError:
     DustinRunner = WillRunner
 
 try:
-    from movement.lucas_movement import PlayerRunner as LucasRunner
+    from movement.lucas_move import PlayerRunner as LucasRunner
 except ImportError:
     LucasRunner = WillRunner
 

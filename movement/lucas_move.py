@@ -1,71 +1,68 @@
-import pygame
 import os
-from .keys_control import KeysController
+import pygame
+from keys_control import KeysController
 
 
-class Character:
-    def __init__(self):
-        # 3 Lanes X coordinates (Foreground level matching main.py)
-        self.lane_x = [280, 400, 520]
-        self.current_lane = 1  # 0: Left, 1: Center, 2: Right
+class PlayerRunner:
+    def __init__(self, width=800, height=600):
+        self.width = width
+        self.height = height
+        self.ground_y = 420
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        assets_dir = os.path.join(base_dir, "..", "assets")
+        self.sprites_right = []
+        self.sprites_left = []
 
-        # Position initialization
-        self.x = self.lane_x[self.current_lane]
-        self.y = 520
+        # Will, Mike, aur Max ke jaisa exact size aur dimensions
+        self.char_w = 170
+        self.char_h = 170
 
-        # Keys controller instance
+        for i in range(1, 6):
+            img = None
+            for ext in [".png", ".PNG", ".jpeg", ".JPEG", ".jpg", ".JPG"]:
+                path = os.path.join(assets_dir, f"lucas{i}{ext}")
+                if os.path.exists(path):
+                    try:
+                        raw = pygame.image.load(path).convert_alpha()
+                        img = pygame.transform.smoothscale(raw, (self.char_w, self.char_h))
+                        break
+                    except Exception as e:
+                        print(f"Error loading {path}: {e}")
+
+            # Fallback agar lucas1.png waghera na milein
+            if img is None:
+                surf = pygame.Surface((self.char_w, self.char_h), pygame.SRCALPHA)
+                surf.fill((46, 139, 87, 200))  # Greenish box agar image missing ho
+                img = surf
+
+            self.sprites_right.append(img)
+            self.sprites_left.append(pygame.transform.flip(img, True, False))
+
         self.controller = KeysController()
+        self.char_x = self.controller.lanes[1]
+        self.char_y = self.ground_y
+        self.facing_right = True
+        self.current_frame = 0.0
+        self.anim_speed = 0.25
+        self.image = self.sprites_right[0]
+        self.x = self.char_x
+        self.y = self.char_y
 
-        # Sprites / Animation frames load karne ka setup
-        # Agar aapke paas multiple sprite frames hain, toh aap yahan load kar sakte hain
-        self.image_frames = []
-        self.current_frame = 0
-        self.animation_timer = 0
-
-        # Example: Agar assets folder se frames load karne hon (jaise will1, will2, etc.)
-        self.load_sprites()
-
-    def load_sprites(self):
-        # Yahan aap apne sprite frames load kar sakte hain
-        # Main yahan safety ke liye check laga raha hoon taake error na aaye
-        IMAGE_DIR = "assets"
-        frame_names = ["will1.jpeg", "will2.jpeg", "will3.jpeg"]  # Aapke project ke mutabiq names
-
-        for name in frame_names:
-            path = os.path.join(IMAGE_DIR, name)
-            if os.path.exists(path):
-                img = pygame.image.load(path).convert_alpha()
-                img = pygame.transform.scale(img, (60, 80))
-                self.image_frames.append(img)
-
-        # Fallback agar sprites na milein taake game crash na ho
-        if not self.image_frames:
-            surf = pygame.Surface((50, 70))
-            surf.fill((50, 150, 255))
-            self.image_frames.append(surf)
-
-    def handle_event(self, event):
-        # Keys control integration (Aapke controls ke mutabiq lane switching)
-        if event.type == pygame.KEYDOWN:
-            if event.key in (pygame.K_LEFT, pygame.K_a) and self.current_lane > 0:
-                self.current_lane -= 1
-            elif event.key in (pygame.K_RIGHT, pygame.K_d) and self.current_lane < 2:
-                self.current_lane += 1
-
-    def update(self):
-        # Smooth lane switching (Lerp effect)
-        target_x = self.lane_x[self.current_lane]
-        self.x += (target_x - self.x) * 0.2
-
-        # Sprite animation frame update logic
-        self.animation_timer += 1
-        if self.animation_timer > 10:  # Speed of animation
-            self.current_frame = (self.current_frame + 1) % len(self.image_frames)
-            self.animation_timer = 0
+    def update(self, events):
+        (self.char_x, self.char_y, self.facing_right, self.is_jumping, self.is_rolling,
+         self.jump_count,) = self.controller.update(self.char_x, self.char_y, self.ground_y, self.facing_right, events)
+        self.current_frame = (self.current_frame + self.anim_speed) % len(self.sprites_right)
 
     def draw(self, surface):
-        # Current active sprite frame ko draw karna (No Background here!)
-        current_image = self.image_frames[self.current_frame]
-        rect = current_image.get_rect()
-        rect.midbottom = (int(self.x), self.y)
-        surface.blit(current_image, rect)
+        active_set = self.sprites_right if self.facing_right else self.sprites_left
+        render_image = active_set[int(self.current_frame)]
+        if self.is_rolling:
+            render_image = pygame.transform.scale(render_image, (self.char_w, self.char_h // 2))
+        draw_y = self.char_y if not self.is_rolling else self.char_y + 60
+        self.image = render_image
+        self.x = self.char_x
+        self.y = draw_y
+        surface.blit(self.image, (self.x, self.y))
+
+    def get_rect(self):
+        return pygame.Rect(self.x, self.y, self.char_w, (self.char_h // 2) if self.is_rolling else self.char_h)
