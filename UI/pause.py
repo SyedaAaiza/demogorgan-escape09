@@ -16,7 +16,7 @@ class ProfessionalButton:
         mouse_pos = pygame.mouse.get_pos()
         current_color = self.hover_color if self.rect.collidepoint(mouse_pos) else self.base_color
 
-        # Draw button body with subtle dark border
+        # Draw button body with dark border
         pygame.draw.rect(surface, current_color, self.rect, border_radius=10)
         pygame.draw.rect(surface, (110, 10, 10), self.rect, 2, border_radius=10)
 
@@ -93,21 +93,20 @@ class PauseMenu:
         except pygame.error as e:
             print(f"Note: Could not load sound ({e})")
 
-        # Menu Buttons Configuration (Centered based on full 1280 width)
+        # Menu Buttons Configuration (Exact Center Alignment)
         btn_width, btn_height = 300, 55
-        center_x = self.width // 2 - btn_width // 2
+        center_x = (self.width - btn_width) // 2
         RED_BASE = (165, 15, 15)
         RED_HOVER = (215, 35, 35)
 
-        # Shifted slightly lower than the absolute center
-        start_y = self.height // 2 + 10
+        start_y = (self.height // 2) - 10
         gap = 70
 
         self.resume_btn = ProfessionalButton(center_x, start_y, btn_width, btn_height, label="RESUME",
                                              base_color=RED_BASE, hover_color=RED_HOVER, button_type="resume")
         self.restart_btn = ProfessionalButton(center_x, start_y + gap, btn_width, btn_height, label="RESTART",
                                               base_color=RED_BASE, hover_color=RED_HOVER, button_type="restart")
-        self.quit_btn = ProfessionalButton(center_x, start_y + (gap * 2), btn_width, btn_height, label="QUIT GAME",
+        self.quit_btn = ProfessionalButton(center_x, start_y + (gap * 2), btn_width, btn_height, label="QUIT TO MENU",
                                            base_color=RED_BASE, hover_color=RED_HOVER, button_type="quit_door")
 
     def play_audio(self):
@@ -147,15 +146,15 @@ class PauseMenu:
             overlay.fill((0, 0, 0, 170))
             surface.blit(overlay, (0, 0))
 
-            # GAME PAUSED Title Header (Centered and shifted slightly lower)
+            # GAME PAUSED Title Header (Centered)
             title_surf = self.font_large.render("GAME PAUSED", True, (255, 255, 255))
-            title_rect = title_surf.get_rect(center=(disp_width // 2, disp_height // 2 - 90))
+            title_rect = title_surf.get_rect(center=(disp_width // 2, (disp_height // 2) - 130))
             surface.blit(title_surf, title_rect)
 
-            # Current Score Display (Centered and shifted slightly lower)
+            # Current Score Display (Centered)
             score_text = f"CURRENT SCORE: {int(current_score)}"
             score_surf = self.font_medium.render(score_text, True, (220, 220, 220))
-            score_rect = score_surf.get_rect(center=(disp_width // 2, disp_height // 2 - 35))
+            score_rect = score_surf.get_rect(center=(disp_width // 2, (disp_height // 2) - 70))
             surface.blit(score_surf, score_rect)
 
             # Draw Menu Buttons
@@ -166,7 +165,7 @@ class PauseMenu:
             pygame.display.flip()
             clock.tick(60)
 
-        # Smooth 3, 2, 1, START! Countdown on Resume
+        # Smooth Countdown on Resume
         if action == "RESUME":
             countdown_steps = ["3", "2", "1", "START!"]
             for step in countdown_steps:
@@ -179,7 +178,7 @@ class PauseMenu:
                     surface.blit(overlay, (0, 0))
 
                     count_surf = self.font_countdown.render(step, True, (255, 50, 50))
-                    count_rect = count_surf.get_rect(center=(disp_width // 2, disp_height // 2 - 20))
+                    count_rect = count_surf.get_rect(center=(disp_width // 2, (disp_height // 2) - 20))
                     surface.blit(count_surf, count_rect)
 
                     pygame.display.flip()
