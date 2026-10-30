@@ -48,4 +48,4 @@ class PlayerRunner:
         surface.blit(self.image, (self.x, self.y))
 
     def get_rect(self):
-        return pygame.Rect(self.x, self.y, 130, 70 if self.is_rolling else 130)git status
+        return pygame.Rect(self.x, self.y, 130, 70 if self.is_rolling else 130)
